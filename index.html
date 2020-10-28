@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+</head>
+<body>
+    <script src="https://apis.google.com/js/api.js"></script>
+<script>
+
+  function authenticate() {
+    return gapi.auth2.getAuthInstance()
+        .signIn({scope: "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.metadata https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/drive.photos.readonly https://www.googleapis.com/auth/drive.readonly"})
+        .then(function() { console.log("Sign-in successful"); },
+              function(err) { console.error("Error signing in", err); });
+  }
+  function loadClient() {
+    gapi.client.setApiKey("AIzaSyDnAyTnjmvB_cYMHcQYRpBikz1HZRgOrmM");
+    return gapi.client.load("https://content.googleapis.com/discovery/v1/apis/drive/v3/rest")//////https://www.googleapis.com/discovery/v1/apis/drive/v3/rest
+        .then(function() { console.log("GAPI client loaded for API"); },
+              function(err) { console.error("Error loading GAPI client for API", err); });
+  }
+  // Make sure the client is loaded and sign-in is complete before calling this method.
+  ///////////////////////
+  function appendPre(message) {
+      var pre = document.getElementById('root');
+      var textContent = document.createTextNode(message + '\n');
+      pre.appendChild(textContent);
+    }
+  function listFiles() {
+      gapi.client.drive.files.list({
+        'pageSize': 10,
+        'fields': "nextPageToken, files(id, name, mimeType, createdTime, size)"
+      }).then(function(response) {
+        
+        var files = response.result.files;     
+        
+        var table = document.getElementById('root');
+        listarenTabla(table, ['ID', 'Nombre', 'mimeType', 'Fecha de Creación', 'Tamaño'], 'th');     
+
+        if (files && files.length > 0) {
+          for (var i = 0; i < files.length; i++) {              
+
+            var file = files[i];              
+
+            listarenTabla(table, [
+              file.id,
+              file.name,
+              file.mimeType,
+              file.createdTime,
+              file.size + ' Kbs'
+            ]);
+
+            //appendPre(file.name + ' / ' + file.id + ' / ' + file.mimeType + ' / ' + file.createdTime + ' / ' + file.size + ' Kbs') + "<br>";
+
+          }
+        } else {
+          appendPre('No hay archivos.');
+        }
+      });
+    }
+    function listarenTabla (table, elements, tag) {
+      
+      var row = document.createElement('tr')
+      elements.forEach(function (e) {
+
+        var cell = document.createElement(tag || 'td')
+
+        if (typeof e === 'string') {
+          cell.textContent = e
+        } else {
+          cell.appendChild(e)
+        }
+                
+        row.appendChild(cell)
+      })
+
+      table.appendChild(row)
+    }
+    
+  ///////////////////////
+  function execute() {
+    return gapi.client.drive.files.list({})
+        .then(function(response) {
+                // Handle the results here (response.result has the parsed body).
+                console.log("Response", response);
+              },
+              function(err) { console.error("Execute error", err); });
+  }
+  gapi.load("client:auth2", function() {
+    gapi.auth2.init({client_id: "182338706295-7jj6eb8uir8n8sdfm9lkensf8jto4mfn.apps.googleusercontent.com"});
+  });
+  /////////////////////////
+  function descarga2(){
+    var id = '1Np7Rc-jyOEBctnT3Z1BUqdHoVNV4b4QG';
+    var request = gapi.client.drive.files.get({ fileId:id, alt:'media' }); 
+    request.execute(function(resp){ console.log(resp); });
+  }
+  /////
+  function descarga3(){
+    var id = '1Np7Rc-jyOEBctnT3Z1BUqdHoVNV4b4QG';
+    var request = gapi.client.drive.files.get({ fileId:id, alt: 'media' });
+    request.then(function(resp){ console.log(resp.result);
+    type = resp.result.mimeType;
+    id = resp.result.id;
+    var request = gapi.client.drive.files.export({ fileId:id, mimeType:type }); 
+    request.execute(function(resp){ console.log(resp); }); });
+  }
+  /////
+  function descarga4(){
+  const URL = 'https://www.googleapis.com/drive/v3/files';
+  const FIELDS = 'name, mimeType, modifiedTime';
+
+  const getFile = async (fileId) => {
+    const { gapi: { auth, client: { drive: { files } } } } = window;
+    const { access_token: accessToken } = auth.getToken();
+    const fetchOptions = { headers: { Authorization: `Bearer ${accessToken}` } };
+  
+    const {
+      result: { name, mimeType, modifiedTime }
+    } = await files.get({ fileId, fields: FIELDS });
+  
+    const blob = await fetch(`${URL}/${fileId}?alt=media`, fetchOptions).then(res => res.blob());
+    const fileOptions = {
+    type: mimeType,
+    lastModified: new Date(modifiedTime).getTime(),
+  };
+  
+  return new File([blob], name, fileOptions);
+  };
+  }
+  /////
+  function descarga(){
+    var fileId = '1HKsc3nZq7DC5aVJrJqyyyDJRcrHss3oc';
+    var accessToken = gapi.auth.getToken().access_token;
+    //var accessToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;// or this: gapi.auth.getToken().access_token;
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "https://www.googleapis.com/drive/v3/files/"+fileId+'?alt=media', true);
+    xhr.setRequestHeader('Authorization','Bearer '+accessToken);
+    xhr.responseType = 'arraybuffer'
+    xhr.onload = function(){
+    //base64ArrayBuffer from https:gist.github.com/jonleighton/958841
+    var base64 = 'data:image/png;base64,' + base64ArrayBuffer(xhr.response);
+
+    //do something with the base64 image here
+
+}
+xhr.send();
+  }
+  /////
+  function descarga1(){
+    var fileId = '1HKsc3nZq7DC5aVJrJqyyyDJRcrHss3oc';
+    var dest = fs.createWriteStream('/tmp/photo.jpg');
+    drive.files.get({
+    fileId: fileId,
+    alt: 'media'
+    })
+    .on('end', function () {
+      console.log('Done');
+    })
+    .on('error', function (err) {
+      console.log('Error during download', err);
+    })
+    .pipe(dest);
+  }
+</script>
+<button onclick="authenticate().then(loadClient)">authorize and load</button>
+<button onclick="execute()">execute</button>
+<!--aca estan los botones para listar en pantalla-->
+<button onclick="listFiles()">listar</button>
+<table id="root" class="table table-hover table-bordered table-responsive"></table>
+<!---------->
+<button onclick="descarga()">descargar</button>
+
+</body>
+</html>
